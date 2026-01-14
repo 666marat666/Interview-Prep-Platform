@@ -49,12 +49,7 @@ KEY FILES AND HOW THEY CONNECT
      - Reports to logStore for UI visibility.
      - Returns a safe fallback message to keep the UI stable.
 
-4) services/geminiService.ts
-   - Another Gemini call for breaking down tasks into subtasks.
-   - Not currently wired into the UI, but kept as a reusable service.
-   - Logs errors to logStore for consistency.
-
-5) store/interviewStore.ts
+4) store/interviewStore.ts
    - Central reactive store for interview session state:
      - currentTopic, currentComplexity, currentType
      - currentQuestion, activeFiles, activeFileName
@@ -66,12 +61,12 @@ KEY FILES AND HOW THEY CONNECT
      - clearHistory() -> clears session history from localStorage.
    - Persists history in localStorage under "react_accelerator_interview_history".
 
-6) store/logStore.ts
+5) store/logStore.ts
    - In-memory log collector for errors/warnings/info.
    - Used by services to surface real error details to the Logs tab.
    - Keeps up to 200 entries and supports clearing.
 
-7) components/InterviewPrep.vue
+6) components/InterviewPrep.vue
    - Full interview experience UI:
      - Controls to select topic/complexity/type.
      - "Start New Question" button triggers fetchQuestion().
@@ -83,16 +78,16 @@ KEY FILES AND HOW THEY CONNECT
      - History list shows previous questions and evaluations.
    - Connects to interviewStore.ts for all state and actions.
 
-8) components/InterviewHistoryEntry.vue
+7) components/InterviewHistoryEntry.vue
    - Collapsible view of a single history item.
    - Shows question, user submission, feedback, and reference answer.
    - Uses InterviewFileViewer for code-based submissions.
 
-9) components/InterviewFileViewer.vue
+8) components/InterviewFileViewer.vue
    - Read-only file viewer with tabs.
    - Used for history submissions or static code display.
 
-10) components/LearningCenter.vue
+9) components/LearningCenter.vue
     - Learning library with search and category filters.
     - Uses data/learningModules.ts for content.
     - UI features:
@@ -100,28 +95,28 @@ KEY FILES AND HOW THEY CONNECT
       - Expandable accordion per module.
       - Code viewer for example files.
 
-11) components/HighlightedText.vue
+10) components/HighlightedText.vue
     - Highlights search hits inside text content.
 
-12) components/SimpleFileViewer.vue
+11) components/SimpleFileViewer.vue
     - File viewer for learning modules.
 
-13) components/LogsPanel.vue
+12) components/LogsPanel.vue
     - Displays errors captured by logStore.ts.
     - Shows timestamp, context, and stack/details.
 
-14) data/learningModules.ts
+13) data/learningModules.ts
     - Static data set for the learning library.
     - Includes descriptions, explanations, and code samples.
     - This is educational content only; no runtime logic.
 
-15) types.ts
+14) types.ts
     - All shared TypeScript models:
       - InterviewTopic, InterviewType, InterviewComplexity
       - QuestionData, EvaluationResult, HistoryItem
       - CodeFile, LearningModule, TechCategory
 
-16) constants.ts
+15) constants.ts
     - App constants and system prompt text for the AI.
 
 
