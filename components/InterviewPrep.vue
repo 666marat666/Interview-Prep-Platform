@@ -64,13 +64,36 @@ const escapeHtml = (value: string) =>
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
+const dedent = (value: string) => {
+  const lines = value.replace(/\r\n/g, '\n').split('\n');
+  const nonEmpty = lines.filter((line) => line.trim().length > 0);
+  const indent = nonEmpty.reduce((min, line) => {
+    const match = line.match(/^\s+/);
+    if (!match) return Math.min(min, 0);
+    return Math.min(min, match[0].length);
+  }, Number.POSITIVE_INFINITY);
+  const trimBy = Number.isFinite(indent) ? indent : 0;
+  return lines.map((line) => line.slice(trimBy)).join('\n').trimEnd();
+};
+
+const formatCodeBlock = (value: string) => {
+  const trimmed = value.trim();
+  const fenced = trimmed.match(/^```[a-zA-Z0-9-]*\n([\s\S]*?)\n```$/);
+  const raw = fenced ? fenced[1] : trimmed;
+  return dedent(raw);
+};
+
 const formatFeedback = (value: string) => {
-  const escaped = escapeHtml(value);
+  const normalized = value.replace(/\r\n/g, '\n').trim();
+  const escaped = escapeHtml(normalized);
   const withInlineCode = escaped.replace(/`([^`]+)`/g, (_match, code) => {
     const trimmed = String(code).trim();
     return `<code class="px-1 py-0.5 rounded bg-gray-200/80 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-mono text-xs">${trimmed}</code>`;
   });
-  return withInlineCode.replace(/\n/g, '<br />');
+  return withInlineCode
+    .split('\n')
+    .map((line) => line.trimStart())
+    .join('<br />');
 };
 
 watch(currentQuestion, () => {
@@ -291,7 +314,7 @@ watch(currentQuestion, () => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>
-          <div class="flex-1">
+          <div class="flex-1 min-w-0">
             <h3
               :class="[
                 'text-lg font-bold mb-2',
@@ -301,12 +324,12 @@ watch(currentQuestion, () => {
               {{ evaluation.isCorrect ? 'Excellent Work!' : 'Review Needed' }}
             </h3>
             <p
-              class="text-gray-700 dark:text-gray-300 leading-relaxed"
+              class="text-gray-700 dark:text-gray-300 leading-relaxed break-words"
               v-html="formatFeedback(evaluation.feedback)"
             ></p>
             <div v-if="evaluation.improvedCode" class="mt-4">
               <p class="text-sm font-semibold opacity-70 mb-2">Improvement Suggestion:</p>
-              <pre class="bg-black/10 dark:bg-black/30 p-3 rounded text-sm font-mono overflow-x-auto">{{ evaluation.improvedCode }}</pre>
+              <pre class="bg-black/10 dark:bg-black/30 p-3 rounded text-sm font-mono overflow-x-auto max-w-full">{{ formatCodeBlock(evaluation.improvedCode) }}</pre>
             </div>
           </div>
         </div>
