@@ -1,7 +1,18 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { InterviewTopic, InterviewComplexity, InterviewType, QuestionData, EvaluationResult, HistoryItem, CodeFile } from "../types";
+import { logError } from "../store/logStore";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+const questionModel = import.meta.env.VITE_GEMINI_MODEL_QUESTION || 'gemini-3-flash-preview';
+const evaluationModel = import.meta.env.VITE_GEMINI_MODEL_EVAL || 'gemini-3-flash-preview';
+
+const getClient = () => {
+  if (!ai) {
+    throw new Error('Missing VITE_GEMINI_API_KEY. Add it to .env.local and restart the dev server.');
+  }
+  return ai;
+};
 
 /**
  * Generates a technical interview question based on topic, complexity, type, and history.
@@ -48,8 +59,8 @@ export const generateQuestion = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+    const response = await getClient().models.generateContent({
+      model: questionModel,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -102,13 +113,15 @@ export const generateQuestion = async (
       referenceAnswer: data.referenceAnswer || "No reference answer provided."
     };
   } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
     console.error("AI Error:", err);
+    logError("generateQuestion", err);
     return {
       id: crypto.randomUUID(),
       topic,
       complexity,
       type,
-      text: "We encountered an issue reaching the AI interviewer. Please try again.",
+      text: `We encountered an issue reaching the AI interviewer. ${message}`,
       hasCode: false,
       files: [],
       referenceAnswer: ""
@@ -158,8 +171,8 @@ export const evaluateAnswer = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+    const response = await getClient().models.generateContent({
+      model: evaluationModel,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -177,10 +190,12 @@ export const evaluateAnswer = async (
 
     return JSON.parse(response.text || "{}") as EvaluationResult;
   } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
     console.error("AI Evaluation Error:", err);
+    logError("evaluateAnswer", err);
     return {
       isCorrect: false,
-      feedback: "Failed to evaluate. Please try again."
+      feedback: `Failed to evaluate. ${message}`
     };
   }
 };
