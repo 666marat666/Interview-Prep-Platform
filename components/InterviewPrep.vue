@@ -58,6 +58,21 @@ const onCodeChange = (event: Event) => {
   updateFileContent(activeFileName.value, value);
 };
 
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+const formatFeedback = (value: string) => {
+  const escaped = escapeHtml(value);
+  const withInlineCode = escaped.replace(/`([^`]+)`/g, (_match, code) => {
+    const trimmed = String(code).trim();
+    return `<code class="px-1 py-0.5 rounded bg-gray-200/80 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-mono text-xs">${trimmed}</code>`;
+  });
+  return withInlineCode.replace(/\n/g, '<br />');
+};
+
 watch(currentQuestion, () => {
   textAnswer.value = '';
 });
@@ -285,9 +300,10 @@ watch(currentQuestion, () => {
             >
               {{ evaluation.isCorrect ? 'Excellent Work!' : 'Review Needed' }}
             </h3>
-            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
-              {{ evaluation.feedback }}
-            </p>
+            <p
+              class="text-gray-700 dark:text-gray-300 leading-relaxed"
+              v-html="formatFeedback(evaluation.feedback)"
+            ></p>
             <div v-if="evaluation.improvedCode" class="mt-4">
               <p class="text-sm font-semibold opacity-70 mb-2">Improvement Suggestion:</p>
               <pre class="bg-black/10 dark:bg-black/30 p-3 rounded text-sm font-mono overflow-x-auto">{{ evaluation.improvedCode }}</pre>
