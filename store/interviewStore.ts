@@ -1,6 +1,7 @@
 import { reactive, toRefs } from 'vue';
 import confetti from 'canvas-confetti';
 import { generateQuestion, evaluateAnswer } from '../services/interviewService';
+import { logInfo } from './logStore';
 import type {
   InterviewTopic,
   InterviewComplexity,
@@ -15,7 +16,9 @@ const loadHistory = () => {
   if (typeof window === 'undefined') return [];
   try {
     const stored = window.localStorage.getItem(INTERVIEW_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const parsed = stored ? JSON.parse(stored) : [];
+    logInfo(`Interview history loaded (${parsed.length} items)`, undefined, 'interviewStore');
+    return parsed;
   } catch (err) {
     console.error('Failed to load history', err);
     return [];
@@ -36,14 +39,17 @@ const state = reactive<InterviewState>({
 
 const setTopic = (topic: InterviewTopic) => {
   state.currentTopic = topic;
+  logInfo(`Topic set to ${topic}`, undefined, 'interviewStore');
 };
 
 const setComplexity = (complexity: InterviewComplexity) => {
   state.currentComplexity = complexity;
+  logInfo(`Complexity set to ${complexity}`, undefined, 'interviewStore');
 };
 
 const setType = (type: InterviewType) => {
   state.currentType = type;
+  logInfo(`Type set to ${type}`, undefined, 'interviewStore');
 };
 
 const updateFileContent = (fileName: string, content: string) => {
@@ -54,6 +60,7 @@ const updateFileContent = (fileName: string, content: string) => {
 
 const setActiveFile = (fileName: string) => {
   state.activeFileName = fileName;
+  logInfo(`Active file set to ${fileName}`, undefined, 'interviewStore');
 };
 
 const resetEvaluation = () => {
@@ -65,6 +72,7 @@ const clearHistory = () => {
     window.localStorage.removeItem(INTERVIEW_STORAGE_KEY);
   }
   state.history = [];
+  logInfo('Interview history cleared', undefined, 'interviewStore');
 };
 
 const fetchQuestion = async () => {
@@ -72,6 +80,11 @@ const fetchQuestion = async () => {
   state.evaluation = null;
   state.currentQuestion = null;
   state.activeFiles = [];
+  logInfo(
+    `Requesting question (${state.currentTopic}, ${state.currentComplexity}, ${state.currentType})`,
+    undefined,
+    'interviewStore'
+  );
 
   const question = await generateQuestion(
     state.currentTopic,
@@ -84,6 +97,11 @@ const fetchQuestion = async () => {
   state.currentQuestion = question;
   state.activeFiles = question.files || [];
   state.activeFileName = question.files?.[0]?.name || '';
+  logInfo(
+    `Question ready (${question.id.slice(0, 8)})`,
+    `hasCode=${question.hasCode} files=${question.files.length}`,
+    'interviewStore'
+  );
 };
 
 const submitAnswer = async (userTextAnswer = '') => {
@@ -91,6 +109,11 @@ const submitAnswer = async (userTextAnswer = '') => {
   if (!currentQuestion) return;
 
   state.isLoading = true;
+  logInfo(
+    `Submitting answer (${currentQuestion.id.slice(0, 8)})`,
+    `type=${currentQuestion.type} files=${state.activeFiles.length} textLength=${userTextAnswer.length}`,
+    'interviewStore'
+  );
 
   const result = await evaluateAnswer(
     currentQuestion,
@@ -110,6 +133,11 @@ const submitAnswer = async (userTextAnswer = '') => {
   state.history = updatedHistory;
   state.evaluation = result;
   state.isLoading = false;
+  logInfo(
+    `Evaluation received (${currentQuestion.id.slice(0, 8)})`,
+    `isCorrect=${result.isCorrect}`,
+    'interviewStore'
+  );
 
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(

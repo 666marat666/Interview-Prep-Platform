@@ -50,19 +50,30 @@ const addLog = (level: LogLevel, message: string, detail?: string, context?: str
   });
 };
 
+const logInfo = (message: string, detail?: string, context?: string) => {
+  addLog('info', message, detail, context);
+};
+
+const logWarn = (message: string, detail?: string, context?: string) => {
+  addLog('warn', message, detail, context);
+};
+
 const logError = (context: string, error: unknown, message?: string) => {
   addLog('error', message ?? `Error in ${context}`, formatDetail(error), context);
 };
 
 const clearLogs = () => {
   state.entries = [];
+  addLog('info', 'Logs cleared');
 };
 
 export const useLogStore = () => ({
   ...toRefs(state),
   addLog,
   clearLogs,
+  logInfo,
+  logWarn,
   logError
 });
 
-export { addLog, logError, clearLogs };
+export { addLog, logInfo, logWarn, logError, clearLogs };

@@ -1,0 +1,195 @@
+PROJECT OVERVIEW
+---------------
+This is a Vue 3 + Vite single-page app for developer interview preparation. It has:
+1) A Learning Library with curated modules and code examples.
+2) An AI Interviewer that generates questions and evaluates answers using Gemini.
+3) A Logs panel that shows error details from AI calls.
+
+The UI is a tabbed experience (Learning, Interview, Logs). All logic runs in the
+browser. Gemini requests are client-side and require a client-exposed API key.
+
+
+CORE RUNTIME FLOW
+-----------------
+App entry:
+- index.html contains the root <div id="app"> and loads /main.ts.
+- main.ts mounts the Vue app from App.vue.
+
+Top-level navigation:
+- App.vue renders the header and tab buttons.
+- App.vue toggles which tab is visible: LearningCenter, InterviewPrep, LogsPanel.
+
+State:
+- The app uses simple Vue reactive stores in the /store folder.
+- interviewStore.ts holds the interview session state.
+- logStore.ts holds error logs shown in the Logs tab.
+
+
+KEY FILES AND HOW THEY CONNECT
+------------------------------
+1) main.ts
+   - Creates the Vue app and mounts it into #app.
+   - Minimal bootstrap layer.
+
+2) App.vue
+   - The main layout and tab navigation.
+   - Handles theme toggling (light/dark) and persists preference in localStorage.
+   - Renders:
+     - components/LearningCenter.vue
+     - components/InterviewPrep.vue
+     - components/LogsPanel.vue
+
+3) services/interviewService.ts
+   - Gemini API integration for:
+     a) generateQuestion(...) -> returns a QuestionData object.
+     b) evaluateAnswer(...) -> returns evaluation feedback.
+   - Uses @google/genai client with the model configured via env variables.
+   - Error handling:
+     - Logs to the console.
+     - Reports to logStore for UI visibility.
+     - Returns a safe fallback message to keep the UI stable.
+
+4) services/geminiService.ts
+   - Another Gemini call for breaking down tasks into subtasks.
+   - Not currently wired into the UI, but kept as a reusable service.
+   - Logs errors to logStore for consistency.
+
+5) store/interviewStore.ts
+   - Central reactive store for interview session state:
+     - currentTopic, currentComplexity, currentType
+     - currentQuestion, activeFiles, activeFileName
+     - isLoading, evaluation, history
+   - Functions:
+     - fetchQuestion() -> calls generateQuestion, updates state.
+     - submitAnswer() -> calls evaluateAnswer, records history, triggers confetti.
+     - updateFileContent(), setActiveFile(), setTopic(), setComplexity(), setType()
+     - clearHistory() -> clears session history from localStorage.
+   - Persists history in localStorage under "react_accelerator_interview_history".
+
+6) store/logStore.ts
+   - In-memory log collector for errors/warnings/info.
+   - Used by services to surface real error details to the Logs tab.
+   - Keeps up to 200 entries and supports clearing.
+
+7) components/InterviewPrep.vue
+   - Full interview experience UI:
+     - Controls to select topic/complexity/type.
+     - "Start New Question" button triggers fetchQuestion().
+     - Question display with reference answer in a <details> block.
+     - Code editor (textarea) if question has files.
+     - Text answer area for theory questions.
+     - Submit Answer triggers submitAnswer().
+     - Evaluation feedback card shows pass/review and improvements.
+     - History list shows previous questions and evaluations.
+   - Connects to interviewStore.ts for all state and actions.
+
+8) components/InterviewHistoryEntry.vue
+   - Collapsible view of a single history item.
+   - Shows question, user submission, feedback, and reference answer.
+   - Uses InterviewFileViewer for code-based submissions.
+
+9) components/InterviewFileViewer.vue
+   - Read-only file viewer with tabs.
+   - Used for history submissions or static code display.
+
+10) components/LearningCenter.vue
+    - Learning library with search and category filters.
+    - Uses data/learningModules.ts for content.
+    - UI features:
+      - Search with keyword highlight.
+      - Expandable accordion per module.
+      - Code viewer for example files.
+
+11) components/HighlightedText.vue
+    - Highlights search hits inside text content.
+
+12) components/SimpleFileViewer.vue
+    - File viewer for learning modules.
+
+13) components/LogsPanel.vue
+    - Displays errors captured by logStore.ts.
+    - Shows timestamp, context, and stack/details.
+
+14) data/learningModules.ts
+    - Static data set for the learning library.
+    - Includes descriptions, explanations, and code samples.
+    - This is educational content only; no runtime logic.
+
+15) types.ts
+    - All shared TypeScript models:
+      - InterviewTopic, InterviewType, InterviewComplexity
+      - QuestionData, EvaluationResult, HistoryItem
+      - CodeFile, LearningModule, TechCategory
+
+16) constants.ts
+    - App constants and system prompt text for the AI.
+
+
+GEMINI INTEGRATION DETAILS
+--------------------------
+Environment variables (client-side):
+- VITE_GEMINI_API_KEY
+- VITE_GEMINI_MODEL_SUBTASKS
+- VITE_GEMINI_MODEL_QUESTION
+- VITE_GEMINI_MODEL_EVAL
+
+Usage flow for interview:
+1) User selects topic/complexity/type.
+2) interviewStore.fetchQuestion() calls generateQuestion().
+3) The Gemini response is parsed to a strict JSON schema.
+4) The UI renders the question and any files.
+5) User submits text/code.
+6) interviewStore.submitAnswer() calls evaluateAnswer().
+7) Evaluation feedback is rendered and stored in history.
+
+Error handling:
+- All Gemini errors are caught and logged into logStore.
+- The UI shows a graceful fallback message instead of crashing.
+
+Security note:
+- VITE_* env vars are exposed to the browser bundle.
+- For production secrecy, move Gemini calls to a serverless API.
+
+
+LOCAL STORAGE
+-------------
+- Theme preference stored under: "theme_preference"
+- Interview history stored under: "react_accelerator_interview_history"
+
+
+STYLING AND UI
+-------------
+- Tailwind is loaded via CDN in index.html.
+- Dark mode uses Tailwind's "class" strategy.
+- App.vue toggles the "dark" class on <html>.
+- Code editor styling uses custom scrollbar CSS in index.html.
+
+
+BUILD AND DEPLOY
+----------------
+Local development:
+1) npm install
+2) Set .env.local with your Gemini key + model overrides.
+3) npm run dev
+
+Vercel:
+- Build command: npm run build
+- Output dir: dist
+- Add env vars in Vercel settings (VITE_GEMINI_API_KEY, etc).
+
+
+INTERVIEW TALKING POINTS
+------------------------
+- Architecture: simple client-only SPA with Vue 3 + reactive stores.
+- Data flow: UI -> store -> service -> Gemini -> store -> UI.
+- Type safety: shared interfaces in types.ts for all data structures.
+- Resilience: error handling with fallback UI and a Logs tab for debug info.
+- UX: tabbed layout, progressive disclosure (details for solutions), history tracking.
+- Trade-offs: client-side Gemini calls expose API key; serverless proxy is a potential improvement.
+
+
+EXTENSION IDEAS
+---------------
+- Add a serverless API layer to hide Gemini keys.
+- Persist logs to localStorage for longer debugging sessions.
+- Add unit tests for store logic and service response parsing.

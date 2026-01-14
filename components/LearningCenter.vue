@@ -4,6 +4,7 @@ import type { TechCategory } from '../types';
 import { LEARNING_MODULES } from '../data/learningModules';
 import HighlightedText from './HighlightedText.vue';
 import SimpleFileViewer from './SimpleFileViewer.vue';
+import { logInfo } from '../store/logStore';
 
 const searchTerm = ref('');
 const selectedCategory = ref<TechCategory | 'All'>('All');
@@ -13,8 +14,10 @@ const toggle = (id: string) => {
   const next = new Set(openIds.value);
   if (next.has(id)) {
     next.delete(id);
+    logInfo(`Closed learning module ${id}`, undefined, 'learningCenter');
   } else {
     next.add(id);
+    logInfo(`Opened learning module ${id}`, undefined, 'learningCenter');
   }
   openIds.value = next;
 };
@@ -41,6 +44,12 @@ const categories: (TechCategory | 'All')[] = ['All', 'React', 'Angular', 'Vue', 
 const clearFilters = () => {
   searchTerm.value = '';
   selectedCategory.value = 'All';
+  logInfo('Learning filters cleared', undefined, 'learningCenter');
+};
+
+const setCategory = (category: TechCategory | 'All') => {
+  selectedCategory.value = category;
+  logInfo(`Learning category set to ${category}`, undefined, 'learningCenter');
 };
 </script>
 
@@ -73,7 +82,7 @@ const clearFilters = () => {
         v-for="cat in categories"
         :key="cat"
         type="button"
-        @click="selectedCategory = cat"
+        @click="setCategory(cat)"
         :class="[
           'px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all',
           selectedCategory === cat

@@ -4,6 +4,7 @@ import { APP_TITLE } from './constants';
 import LearningCenter from './components/LearningCenter.vue';
 import InterviewPrep from './components/InterviewPrep.vue';
 import LogsPanel from './components/LogsPanel.vue';
+import { logInfo } from './store/logStore';
 
 type Tab = 'LEARNING' | 'INTERVIEW' | 'LOGS';
 type Theme = 'light' | 'dark';
@@ -31,14 +32,20 @@ const applyTheme = (value: Theme) => {
 
 const toggleTheme = () => {
   theme.value = theme.value === 'light' ? 'dark' : 'light';
+  logInfo(`Theme toggled to ${theme.value}`, undefined, 'app');
 };
 
 onMounted(() => {
   applyTheme(theme.value);
+  logInfo('App mounted', undefined, 'app');
 });
 
 watch(theme, (value) => {
   applyTheme(value);
+});
+
+watch(activeTab, (value) => {
+  logInfo(`Tab switched to ${value}`, undefined, 'app');
 });
 </script>
 
