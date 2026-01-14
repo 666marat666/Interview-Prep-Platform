@@ -1,0 +1,5 @@
+{
+  "name": "Interview Prep Platform",
+  "description": "A comprehensive Todo app designed to teach React concepts to C# developers, featuring State Management (Zustand), Context API, and AI-powered task breakdown.",
+  "requestFramePermissions": []
+}
