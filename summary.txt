@@ -58,3 +58,8 @@ Important notes
 - Server-side env vars used:
   - `GEMINI_API_KEY`, `GEMINI_MODEL_QUESTION`, `GEMINI_MODEL_EVAL`
 - Client-side VITE_* env vars removed from usage.
+
+Latest updates (Feb 1, 2026)
+----------------------------
+- Vercel env vars must be set server-side and applied via redeploy.
+- Code formatting fix: prompt enforces multi-line file content; client normalizes literal "\n" to real line breaks.

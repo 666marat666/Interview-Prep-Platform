@@ -46,4 +46,4 @@ This starts the Go API and Vite together with `GEMINI_MOCK=1`.
    - Build Command: `npm run build`
    - Output Directory: `dist`
 
-Note: `VITE_*` variables are exposed to the client bundle. This app now proxies Gemini through Go serverless functions under `/api`.
+Note: `VITE_*` variables are exposed to the client bundle. This app proxies Gemini through Go serverless functions under `/api`, so only server-side env vars are needed. If you add/update env vars in Vercel, redeploy to apply them.

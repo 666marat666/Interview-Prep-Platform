@@ -7,7 +7,8 @@ This is a Vue 3 + Vite single-page app for developer interview preparation. It h
 
 The UI is a tabbed experience (Learning, Interview, Logs). All logic runs in the
 browser. Gemini requests are proxied through Go serverless functions to keep the
-API key server-side. A simple password gate is enabled (marat007!).
+API key server-side. A simple password gate is enabled (marat007!) in both UI and API.
+Local development runs a Go API server that mirrors the Vercel functions.
 
 
 CORE RUNTIME FLOW
@@ -19,6 +20,7 @@ App entry:
 Top-level navigation:
 - App.vue renders the header and tab buttons.
 - App.vue toggles which tab is visible: LearningCenter, InterviewPrep, LogsPanel.
+- App.vue includes a simple password gate and stores pass state in localStorage.
 
 State:
 - The app uses simple Vue reactive stores in the /store folder.
@@ -35,16 +37,18 @@ KEY FILES AND HOW THEY CONNECT
 2) App.vue
    - The main layout and tab navigation.
    - Handles theme toggling (light/dark) and persists preference in localStorage.
+   - Simple password gate; stores "simple_auth_passed" in localStorage.
    - Renders:
      - components/LearningCenter.vue
      - components/InterviewPrep.vue
      - components/LogsPanel.vue
 
 3) services/interviewService.ts
-   - Gemini API integration for:
+   - Client -> Go API integration for:
      a) generateQuestion(...) -> returns a QuestionData object.
      b) evaluateAnswer(...) -> returns evaluation feedback.
-   - Uses @google/genai client with the model configured via env variables.
+   - Sends requests to `/api/*` with the app password.
+   - Normalizes literal "\n" escapes in returned code to real line breaks.
    - Error handling:
      - Logs to the console.
      - Reports to logStore for UI visibility.
@@ -120,6 +124,25 @@ KEY FILES AND HOW THEY CONNECT
 15) constants.ts
     - App constants and system prompt text for the AI.
 
+16) api/generate-question/index.go
+    - Vercel serverless function for question generation.
+    - Enforces rate limit and password check.
+    - Builds a Gemini prompt and requires formatted, multi-line code in files.
+
+17) api/evaluate-answer/index.go
+    - Vercel serverless function for evaluation.
+    - Enforces rate limit and password check.
+    - Sends user files/text to Gemini and returns JSON feedback.
+
+18) server/local/main.go
+    - Local Go API server for development.
+    - Loads .env.local/.env and exposes /api/generate-question and /api/evaluate-answer.
+    - Adds permissive CORS for local dev.
+
+19) server/shared/shared.go + server/shared/rate_limit.go
+    - Shared helpers: JSON IO, auth, rate limiting, Gemini client factory.
+    - Reads env vars and supports GEMINI_MOCK mode.
+
 
 GEMINI INTEGRATION DETAILS
 --------------------------
@@ -127,15 +150,18 @@ Environment variables (server-side, via Go proxy):
 - GEMINI_API_KEY
 - GEMINI_MODEL_QUESTION
 - GEMINI_MODEL_EVAL
+Optional mock:
+- GEMINI_MOCK=1 returns deterministic mock responses.
 
 Usage flow for interview:
 1) User selects topic/complexity/type.
 2) interviewStore.fetchQuestion() calls generateQuestion().
-3) The Gemini response is parsed to a strict JSON schema.
+3) Go function calls Gemini and parses a strict JSON schema response.
 4) The UI renders the question and any files.
 5) User submits text/code.
 6) interviewStore.submitAnswer() calls evaluateAnswer().
-7) Evaluation feedback is rendered and stored in history.
+7) Go function calls Gemini and returns evaluation feedback.
+8) Evaluation feedback is rendered and stored in history.
 
 Error handling:
 - All Gemini errors are caught and logged into logStore.
@@ -144,6 +170,8 @@ Error handling:
 Security note:
 - Gemini env vars stay server-side inside the Go functions.
 - Client only talks to `/api/*` endpoints; no API key in the bundle.
+- Vercel requires server-side env vars to be set and redeployed after changes.
+- App password is required by both UI and API; it is currently hardcoded.
 
 
 LOCAL STORAGE
@@ -170,6 +198,7 @@ Local development:
 
 Local mock mode:
 - Set GEMINI_MOCK=1 in .env.local to use deterministic mock responses.
+- Or run `npm run dev:mock` to start API + Vite together with mock enabled.
 
 Vercel:
 - Build command: npm run build
@@ -179,8 +208,8 @@ Vercel:
 
 INTERVIEW TALKING POINTS
 ------------------------
-- Architecture: simple client-only SPA with Vue 3 + reactive stores.
-- Data flow: UI -> store -> service -> Gemini -> store -> UI.
+- Architecture: SPA + small Go serverless API layer for Gemini.
+- Data flow: UI -> store -> client service -> Go API -> Gemini -> Go API -> store -> UI.
 - Type safety: shared interfaces in types.ts for all data structures.
 - Resilience: error handling with fallback UI and a Logs tab for debug info.
 - UX: tabbed layout, progressive disclosure (details for solutions), history tracking.
@@ -189,6 +218,5 @@ INTERVIEW TALKING POINTS
 
 EXTENSION IDEAS
 ---------------
-- Add a serverless API layer to hide Gemini keys.
 - Persist logs to localStorage for longer debugging sessions.
 - Add unit tests for store logic and service response parsing.
