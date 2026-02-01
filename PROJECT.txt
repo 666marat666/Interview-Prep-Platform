@@ -6,7 +6,8 @@ This is a Vue 3 + Vite single-page app for developer interview preparation. It h
 3) A Logs panel that shows error details from AI calls.
 
 The UI is a tabbed experience (Learning, Interview, Logs). All logic runs in the
-browser. Gemini requests are client-side and require a client-exposed API key.
+browser. Gemini requests are proxied through Go serverless functions to keep the
+API key server-side. A simple password gate is enabled (marat007!).
 
 
 CORE RUNTIME FLOW
@@ -122,11 +123,10 @@ KEY FILES AND HOW THEY CONNECT
 
 GEMINI INTEGRATION DETAILS
 --------------------------
-Environment variables (client-side):
-- VITE_GEMINI_API_KEY
-- VITE_GEMINI_MODEL_SUBTASKS
-- VITE_GEMINI_MODEL_QUESTION
-- VITE_GEMINI_MODEL_EVAL
+Environment variables (server-side, via Go proxy):
+- GEMINI_API_KEY
+- GEMINI_MODEL_QUESTION
+- GEMINI_MODEL_EVAL
 
 Usage flow for interview:
 1) User selects topic/complexity/type.
@@ -142,8 +142,8 @@ Error handling:
 - The UI shows a graceful fallback message instead of crashing.
 
 Security note:
-- VITE_* env vars are exposed to the browser bundle.
-- For production secrecy, move Gemini calls to a serverless API.
+- Gemini env vars stay server-side inside the Go functions.
+- Client only talks to `/api/*` endpoints; no API key in the bundle.
 
 
 LOCAL STORAGE
@@ -165,12 +165,16 @@ BUILD AND DEPLOY
 Local development:
 1) npm install
 2) Set .env.local with your Gemini key + model overrides.
-3) npm run dev
+3) npm run dev:api
+4) npm run dev
+
+Local mock mode:
+- Set GEMINI_MOCK=1 in .env.local to use deterministic mock responses.
 
 Vercel:
 - Build command: npm run build
 - Output dir: dist
-- Add env vars in Vercel settings (VITE_GEMINI_API_KEY, etc).
+- Add env vars in Vercel settings (GEMINI_API_KEY, etc).
 
 
 INTERVIEW TALKING POINTS
@@ -180,7 +184,7 @@ INTERVIEW TALKING POINTS
 - Type safety: shared interfaces in types.ts for all data structures.
 - Resilience: error handling with fallback UI and a Logs tab for debug info.
 - UX: tabbed layout, progressive disclosure (details for solutions), history tracking.
-- Trade-offs: client-side Gemini calls expose API key; serverless proxy is a potential improvement.
+- Trade-offs: serverless functions add a small backend surface (rate limiting + password gate).
 
 
 EXTENSION IDEAS

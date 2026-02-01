@@ -1,0 +1,60 @@
+Issue summary (Feb 1, 2026)
+===========================
+
+Current issue
+-------------
+Local Go API will not start because the `go` command is not available on the
+current PATH for this terminal session.
+When running `npm run dev:api`, it fails with:
+  "go : The term 'go' is not recognized..."
+This prevents the API from listening on http://localhost:4000, so Vite's proxy
+to `/api/*` fails with ECONNREFUSED.
+
+Fix steps
+---------
+1) Ensure Go is on PATH in the current terminal session.
+   - Open a new terminal after installing Go, or add Go to PATH.
+   - If Go is installed but not visible, set PATH to include its bin folder.
+
+2) In repo root, run:
+   - `go mod tidy`
+   This generates go.sum and downloads `google.golang.org/genai`.
+
+3) Run local mock stack (one command):
+   - `npm run dev:mock`
+
+If Go is installed but still not on PATH, update PATH or modify
+`scripts/dev-mock.mjs` to use the absolute path to go.exe.
+
+What changed in this session
+----------------------------
+- Frontend now calls Go serverless proxy endpoints instead of client-side Gemini:
+  - `services/interviewService.ts`
+- Simple password gate added in UI (password: marat007!)
+  - `App.vue`
+- Go Vercel Functions:
+  - `api/generate-question/index.go`
+  - `api/evaluate-answer/index.go`
+- Shared Go helpers + rate limiting:
+  - `server/shared/shared.go`
+  - `server/shared/rate_limit.go`
+- Local Go API server for dev:
+  - `server/local/main.go`
+- Vite proxy for `/api` to local Go server:
+  - `vite.config.ts`
+- Mock mode support:
+  - `GEMINI_MOCK=1` env
+  - `.env.local` created with `GEMINI_MOCK=1`
+- One-command local mock runner:
+  - `scripts/dev-mock.mjs`
+  - `package.json` script: `dev:mock`
+- Docs updated:
+  - `README.md`, `PROJECT.txt`, `.env.example`
+- `go.mod` added for Go modules
+
+Important notes
+---------------
+- Vercel deploy still uses Vite build; Go functions live under `/api`.
+- Server-side env vars used:
+  - `GEMINI_API_KEY`, `GEMINI_MODEL_QUESTION`, `GEMINI_MODEL_EVAL`
+- Client-side VITE_* env vars removed from usage.

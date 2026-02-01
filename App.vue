@@ -10,11 +10,16 @@ type Tab = 'LEARNING' | 'INTERVIEW' | 'LOGS';
 type Theme = 'light' | 'dark';
 
 const activeTab = ref<Tab>('LEARNING');
+const APP_PASSWORD = 'marat007!';
+const isAuthed = ref(false);
+const passwordInput = ref('');
+const authError = ref('');
 
 const theme = ref<Theme>('light');
 if (typeof window !== 'undefined' && window.localStorage) {
   const stored = window.localStorage.getItem('theme_preference');
   theme.value = stored === 'dark' || stored === 'light' ? stored : 'light';
+  isAuthed.value = window.localStorage.getItem('simple_auth_passed') === 'true';
 }
 
 const applyTheme = (value: Theme) => {
@@ -33,6 +38,18 @@ const applyTheme = (value: Theme) => {
 const toggleTheme = () => {
   theme.value = theme.value === 'light' ? 'dark' : 'light';
   logInfo(`Theme toggled to ${theme.value}`, undefined, 'app');
+};
+
+const submitPassword = () => {
+  if (passwordInput.value === APP_PASSWORD) {
+    isAuthed.value = true;
+    authError.value = '';
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('simple_auth_passed', 'true');
+    }
+  } else {
+    authError.value = 'Incorrect password.';
+  }
 };
 
 onMounted(() => {
@@ -66,6 +83,30 @@ watch(activeTab, (value) => {
         </button>
       </header>
 
+      <div v-if="!isAuthed" class="max-w-md mx-auto mt-16 bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-3">Enter password</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          This app is protected with a simple access gate.
+        </p>
+        <form @submit.prevent="submitPassword" class="space-y-4">
+          <input
+            v-model="passwordInput"
+            type="password"
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Password"
+            autocomplete="current-password"
+          />
+          <button
+            type="submit"
+            class="w-full rounded-lg bg-blue-600 text-white py-2 font-semibold hover:bg-blue-700 transition-colors"
+          >
+            Continue
+          </button>
+          <p v-if="authError" class="text-sm text-red-600">{{ authError }}</p>
+        </form>
+      </div>
+
+      <div v-else>
       <div class="flex p-1 bg-gray-200 dark:bg-gray-700 rounded-xl mb-8">
         <button
           type="button"
@@ -115,6 +156,7 @@ watch(activeTab, (value) => {
 
       <div v-show="activeTab === 'LOGS'">
         <LogsPanel />
+      </div>
       </div>
     </div>
   </div>
