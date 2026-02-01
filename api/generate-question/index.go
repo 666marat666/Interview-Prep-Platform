@@ -135,6 +135,8 @@ Project Structure:
 - Example: 'App.tsx' and 'components/Button.tsx'.
 - If "fix bug", include buggy code.
 - If "implement feature", include method signatures.
+- IMPORTANT: Each file's "content" must be properly formatted code with line breaks and indentation.
+- Do NOT return minified or single-line code. Use '\n' for newlines inside the JSON string.
 
 Return pure JSON adhering to the schema.
 `, historySummary, req.Complexity, req.Type, req.Topic)

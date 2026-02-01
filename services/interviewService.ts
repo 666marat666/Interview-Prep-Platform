@@ -48,9 +48,19 @@ export const generateQuestion = async (
     // Normalize files if AI returns empty
     const files = data.files && data.files.length > 0 ? data.files : [];
 
+    // Fix common escape artifacts so code displays with real line breaks.
+    const normalizedFiles = files.map((file) => {
+      const content = file.content ?? '';
+      const hasLiteralEscapes = content.includes('\\n') && !content.includes('\n');
+      const normalizedContent = hasLiteralEscapes
+        ? content.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\r/g, '\r')
+        : content;
+      return { ...file, content: normalizedContent };
+    });
+
     // Ensure practice questions always have a file to edit
-    if (type === 'Practice' && files.length === 0) {
-      files.push({
+    if (type === 'Practice' && normalizedFiles.length === 0) {
+      normalizedFiles.push({
         name: 'solution.ts',
         language: 'typescript',
         content: '// Write your solution here...'
@@ -63,8 +73,8 @@ export const generateQuestion = async (
       complexity,
       type,
       text: data.text,
-      hasCode: data.hasCode || files.length > 0,
-      files: files,
+      hasCode: data.hasCode || normalizedFiles.length > 0,
+      files: normalizedFiles,
       referenceAnswer: data.referenceAnswer || "No reference answer provided."
     };
   } catch (err) {
